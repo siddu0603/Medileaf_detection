@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaf Species Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: url('/static/images/bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Header Styles */
+        header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        header .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #6C63FF;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        header nav ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        header nav ul li {
+            position: relative;
+        }
+
+        header nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        header nav ul li a:hover {
+            color: #6C63FF;
+            transform: translateY(-2px);
+        }
+
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #6C63FF;
+            color: white;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            width: 600px;
+            max-width: 90%;
+            z-index: 2000;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #6C63FF;
+            font-size: 1.8rem;
+        }
+
+        .modal-close {
+            font-size: 1.5rem;
+            color: #333;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #6C63FF;
+        }
+
+        .modal-content ul {
+            text-align: left;
+            margin-left: 20px;
+            color: #333;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-content .example-images {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .modal-content .example-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .modal-content .example-image:hover {
+            transform: scale(1.05);
+        }
+
+        .modal-content .image-container {
+            text-align: center;
+        }
+
+        .modal-content .image-container p {
+            color: #333;
+            font-weight: 600;
+            margin: 10px 0 5px;
+        }
+
+        .modal-content .download-link {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #6C63FF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .modal-content .download-link:hover {
+            background-color: #7e70ff;
+        }
+
+        .modal-content .leaf-description {
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-content .uploaded-image {
+            max-width: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1500;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.75);
+            padding: 50px;
+            border-radius: 15px;
+            width: 550px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            animation: slideUp 1s ease-out;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .input-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+        }
+
+        #imageInput {
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            background-color: #333;
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #imageInput:hover {
+            background-color: #444;
+            border-color: #6C63FF;
+        }
+
+        #predictButton {
+            background-color: #6C63FF;
+            padding: 14px 35px;
+            border: none;
+            border-radius: 50px;
+            font-size: 17px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        #predictButton:hover {
+            background-color: #7e70ff;
+            transform: translateY(-4px);
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        #predictButton:active {
+            transform: translateY(1px);
+        }
+
+        .result-container {
+            background: rgba(255, 255, 255, 0.95);
+            color: black;
+            display: none;
+            padding: 25px;
+            border-radius: 15px;
+            width: 550px;
+            box-shadow: 0px 8px 35px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-top: 25px;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        .result-container img {
+            max-width: 320px;
+            margin-top: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .result-container p {
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .result-container .learn-more {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #6C63FF;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .result-container .learn-more:hover {
+            background-color: #7e70ff;
+            transform: translateY(-2px);
+        }
+
+        .suggestion-container {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #6C63FF;
+        }
+
+        .suggestion-container h3 {
+            color: #6C63FF;
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+        }
+
+        .suggestion-container p {
+            font-size: 17px;
+            margin-bottom: 12px;
+        }
+
+        .example-images {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .example-image {
+            width: 160px;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .example-image:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .download-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #6C63FF;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .download-link:hover {
+            background-color: #7e70ff;
+            transform: translateY(-2px);
+        }
+
+        .chatbot-info {
+            font-size: 15px;
+            color: #777;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 10px 20px;
+            }
+
+            header nav ul {
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            .container {
+                width: 95%;
+                padding: 30px;
+            }
+
+            h1 {
+                font-size: 3rem;
+            }
+
+            #predictButton {
+                font-size: 15px;
+                padding: 12px 25px;
+            }
+
+            .result-container {
+                width: 95%;
+            }
+
+            .modal {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .modal-content .example-images {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">MediLeaf</div>
+        <nav>
+            <ul>
+                <li><a href="#" onclick="openModal('imageGuideModal')">Image Guide</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropbtn">Know About Leaves</a>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="openLeafModal('Alpinia Galanga (Rasna)')">Alpinia Galanga (Rasna)</a>
+                        <a href="#" onclick="openLeafModal('Amaranthus Viridis (Arive-Dantu)')">Amaranthus Viridis (Arive-Dantu)</a>
+                        <a href="#" onclick="openLeafModal('Artocarpus Heterophyllus (Jackfruit)')">Artocarpus Heterophyllus (Jackfruit)</a>
+                        <a href="#" onclick="openLeafModal('Azadirachta Indica (Neem)')">Azadirachta Indica (Neem)</a>
+                        <a href="#" onclick="openLeafModal('Basella Alba (Basale)')">Basella Alba (Basale)</a>
+                        <a href="#" onclick="openLeafModal('Brassica Juncea (Indian Mustard)')">Brassica Juncea (Indian Mustard)</a>
+                        <a href="#" onclick="openLeafModal('Carissa Carandas (Karanda)')">Carissa Carandas (Karanda)</a>
+                        <a href="#" onclick="openLeafModal('Citrus Limon (Lemon)')">Citrus Limon (Lemon)</a>
+                        <a href="#" onclick="openLeafModal('Ficus Auriculata (Roxburgh fig)')">Ficus Auriculata (Roxburgh fig)</a>
+                        <a href="#" onclick="openLeafModal('Ficus Religiosa (Peepal Tree)')">Ficus Religiosa (Peepal Tree)</a>
+                        <a href="#" onclick="openLeafModal('Hibiscus Rosa-sinensis')">Hibiscus Rosa-sinensis</a>
+                        <a href="#" onclick="openLeafModal('Jasminum (Jasmine)')">Jasminum (Jasmine)</a>
+                        <a href="#" onclick="openLeafModal('Mangifera Indica (Mango)')">Mangifera Indica (Mango)</a>
+                        <a href="#" onclick="openLeafModal('Mentha (Mint)')">Mentha (Mint)</a>
+                        <a href="#" onclick="openLeafModal('Moringa Oleifera (Drumstick)')">Moringa Oleifera (Drumstick)</a>
+                        <a href="#" onclick="openLeafModal('Muntingia Calabura (Jamaica Cherry-Gasagase)')">Muntingia Calabura (Jamaica Cherry-Gasagase)</a>
+                        <a href="#" onclick="openLeafModal('Murraya Koenigii (Curry)')">Murraya Koenigii (Curry)</a>
+                        <a href="#" onclick="openLeafModal('Nerium Oleander (Oleander)')">Nerium Oleander (Oleander)</a>
+                        <a href="#" onclick="openLeafModal('Nyctanthes Arbor-tristis (Parijata)')">Nyctanthes Arbor-tristis (Parijata)</a>
+                        <a href="#" onclick="openLeafModal('Ocimum Tenuiflorum (Tulsi)')">Ocimum Tenuiflorum (Tulsi)</a>
+                        <a href="#" onclick="openLeafModal('Piper Betle (Betel)')">Piper Betle (Betel)</a>
+                        <a href="#" onclick="openLeafModal('Plectranthus Amboinicus (Mexican Mint)')">Plectranthus Amboinicus (Mexican Mint)</a>
+                        <a href="#" onclick="openLeafModal('Pongamia Pinnata (Indian Beech)')">Pongamia Pinnata (Indian Beech)</a>
+                        <a href="#" onclick="openLeafModal('Psidium Guajava (Guava)')">Psidium Guajava (Guava)</a>
+                        <a href="#" onclick="openLeafModal('Punica Granatum (Pomegranate)')">Punica Granatum (Pomegranate)</a>
+                        <a href="#" onclick="openLeafModal('Santalum Album (Sandalwood)')">Santalum Album (Sandalwood)</a>
+                        <a href="#" onclick="openLeafModal('Syzygium Cumini (Jamun)')">Syzygium Cumini (Jamun)</a>
+                        <a href="#" onclick="openLeafModal('Syzygium Jambos (Rose Apple)')">Syzygium Jambos (Rose Apple)</a>
+                        <a href="#" onclick="openLeafModal('Tabernaemontana Divaricata (Crape Jasmine)')">Tabernaemontana Divaricata (Crape Jasmine)</a>
+                        <a href="#" onclick="openLeafModal('Trigonella Foenum-graecum (Fenugreek)')">Trigonella Foenum-graecum (Fenugreek)</a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Modal for Image Guide -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal" id="imageGuideModal">
+        <div class="modal-header">
+            <h2>Image Quality Guide</h2>
+            <span class="modal-close" onclick="closeModal()">×</span>
+        </div>
+        <div class="modal-content">
+            <p>For better results, please ensure your image:</p>
+            <ul>
+                <li>Shows a single, clear leaf</li>
+                <li>Has good lighting without shadows</li>
+                <li>Has a plain background</li>
+                <li>Shows the complete leaf</li>
+            </ul>
+            <p>Example images:</p>
+            <div class="example-images">
+                <div class="image-container">
+                    <img src="/static/images/example1.png" class="example-image">
+                    <p>Tulsi Leaf</p>
+                    <a href="/static/images/example1.png" class="download-link" download="neem_leaf.jpg">Download</a>
+                </div>
+                <div class="image-container">
+                    <img src="/static/images/example2.png" class="example-image">
+                    <p>Neem Leaf</p>
+                    <a href="/static/images/example2.png" class="download-link" download="tulsi_leaf.jpg">Download</a>
+                </div>
+                <div class="image-container">
+                    <img src="/static/images/example3.png" class="example-image">
+                    <p>Indian Beech Leaf</p>
+                    <a href="/static/images/example3.png" class="download-link" download="aloe_vera_leaf.jpg">Download</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Leaf Description -->
+    <div class="modal" id="leafDescriptionModal">
+        <div class="modal-header">
+            <h2 id="leafModalTitle"></h2>
+            <span class="modal-close" onclick="closeModal()">×</span>
+        </div>
+        <div class="modal-content">
+            <img id="leafModalImage" class="uploaded-image" style="display:none;">
+            <p id="leafModalDescription" class="leaf-description"></p>
+        </div>
+    </div>
+
+    <main>
+        <h1>Medicinal Leaves Detection</h1>
+        <div class="container" id="container">
+            <h2 id="title" style="font-size:26px; color: #fff;">Upload an Image for Classification</h2>
+            <div class="input-section">
+                <input type="file" id="imageInput" accept="image/*">
+                <button id="predictButton" onclick="uploadImage()">Predict</button>
+            </div>
+        </div>
+
+        <!-- Result container -->
+        <div class="result-container" id="resultContainer">
+            <img id="preview" style="display:none;">
+            <p id="result"></p>
+            <a href="#" class="learn-more" id="learnMoreButton" style="display:none;" onclick="openPredictionModal()">Learn More</a>
+
+            <!-- Suggestion container (hidden by default) -->
+            <div class="suggestion-container" id="suggestionContainer">
+                <h3>Image Quality Suggestions</h3>
+                <p>For better results, please ensure your image:</p>
+                <ul style="text-align: left; margin-left: 20px;">
+                    <li>Shows a single, clear leaf</li>
+                    <li>Has good lighting without shadows</li>
+                    <li>Has a plain background</li>
+                    <li>Shows the complete leaf</li>
+                </ul>
+
+                <p>Here are some example images:</p>
+                <div class="example-images">
+                    <img src="/static/images/example1.png" class="example-image" onclick="useExampleImage(this)">
+                    <img src="/static/images/example2.png" class="example-image" onclick="useExampleImage(this)">
+                    <img src="/static/images/example3.png" class="example-image" onclick="useExampleImage(this)">
+                </div>
+
+                <p>Download a sample image to test:</p>
+                <a href="/static/images/example1.png" class="download-link" download="sample_leaf.jpg">
+                    Download Sample Image
+                </a>
+            </div>
+
+            <p class="chatbot-info">For more details about this leaf, use the Medibot.</p>
+        </div>
+    </main>
+
+    <script>
+        // Leaf descriptions
+        let leafDescriptions = {
+            'Alpinia Galanga (Rasna)': 'Rasna leaves are used in Ayurvedic medicine to relieve joint pain and inflammation. The leaves are often used in decoctions to treat arthritis and respiratory issues.',
+            'Amaranthus Viridis (Arive-Dantu)': 'Arive-Dantu leaves are rich in antioxidants and used to treat fever, urinary disorders, and skin conditions. They are also consumed as a leafy vegetable to boost immunity.',
+            'Artocarpus Heterophyllus (Jackfruit)': 'Jackfruit leaves are used in traditional medicine to manage diabetes and improve digestion. They are often boiled to make teas for treating fever and skin ailments.',
+            'Azadirachta Indica (Neem)': 'Neem leaves are renowned for their antibacterial and antiviral properties. They are used to treat skin infections, boost immunity, and purify blood.',
+            'Basella Alba (Basale)': 'Basale leaves are rich in vitamins and used to treat constipation and improve skin health. They are also used in traditional remedies for mouth ulcers.',
+            'Brassica Juncea (Indian Mustard)': 'Indian Mustard leaves are used to reduce inflammation and treat respiratory issues. They are also consumed to improve digestion and heart health.',
+            'Carissa Carandas (Karanda)': 'Karanda leaves are used to treat fever, diarrhea, and oral infections. They possess antioxidant properties that aid in wound healing.',
+            'Citrus Limon (Lemon)': 'Lemon leaves are used in teas to relieve colds, headaches, and digestive issues. They have antimicrobial properties that support immune health.',
+            'Ficus Auriculata (Roxburgh fig)': 'Roxburgh fig leaves are used to treat wounds and ulcers. They are also used in traditional medicine to manage diabetes and liver disorders.',
+            'Ficus Religiosa (Peepal Tree)': 'Peepal leaves are sacred in Ayurveda and used to treat asthma, constipation, and heart diseases. They are often used in decoctions for skin health.',
+            'Hibiscus Rosa-sinensis': 'Hibiscus leaves are used to promote hair growth and treat skin infections. They are also consumed to improve digestion and reduce inflammation.',
+            'Jasminum (Jasmine)': 'Jasmine leaves are used to treat skin disorders and promote wound healing. They are also used in aromatherapy to reduce stress and anxiety.',
+            'Mangifera Indica (Mango)': 'Mango leaves are used to manage diabetes and treat respiratory issues. They are often boiled to make teas for improving oral health.',
+            'Mentha (Mint)': 'Mint leaves are widely used to treat digestive disorders, headaches, and respiratory issues. They have cooling properties that soothe skin irritations.',
+            'Moringa Oleifera (Drumstick)': 'Moringa leaves are a superfood used to boost immunity, reduce inflammation, and treat anemia. They are rich in antioxidants and vitamins.',
+            'Muntingia Calabura (Jamaica Cherry-Gasagase)': 'Jamaica Cherry leaves are used to treat headaches, colds, and inflammation. They are also used in teas to improve digestion.',
+            'Murraya Koenigii (Curry)': 'Curry leaves are used to improve digestion, promote hair growth, and manage diabetes. They are rich in antioxidants and support liver health.',
+            'Nerium Oleander (Oleander)': 'Oleander leaves are used in traditional medicine to treat skin conditions and heart issues, but they are toxic and should be used cautiously.',
+            'Nyctanthes Arbor-tristis (Parijata)': 'Parijata leaves are used to treat fever, arthritis, and skin infections. They are often used in decoctions for their anti-inflammatory properties.',
+            'Ocimum Tenuiflorum (Tulsi)': 'Tulsi leaves are revered in Ayurveda for their immune-boosting and stress-relieving properties. They are used to treat colds, fevers, and respiratory issues.',
+            'Piper Betle (Betel)': 'Betel leaves are used to improve digestion, treat respiratory issues, and promote oral health. They have antimicrobial properties that aid in wound healing.',
+            'Plectranthus Amboinicus (Mexican Mint)': 'Mexican Mint leaves are used to treat colds, coughs, and skin infections. They are also used in teas to improve digestion.',
+            'Pongamia Pinnata (Indian Beech)': 'Indian Beech leaves are used to treat skin disorders, wounds, and rheumatism. They have anti-inflammatory and antimicrobial properties.',
+            'Psidium Guajava (Guava)': 'Guava leaves are used to treat diarrhea, diabetes, and oral infections. They are rich in antioxidants and support immune health.',
+            'Punica Granatum (Pomegranate)': 'Pomegranate leaves are used to treat digestive disorders and skin conditions. They are also used in teas to improve heart health.',
+            'Santalum Album (Sandalwood)': 'Sandalwood leaves are used to treat skin infections and inflammation. They are also used in traditional medicine to promote mental clarity.',
+            'Syzygium Cumini (Jamun)': 'Jamun leaves are used to manage diabetes and improve digestion. They are also used to treat oral infections and skin conditions.',
+            'Syzygium Jambos (Rose Apple)': 'Rose Apple leaves are used to treat fever and digestive issues. They have antioxidant properties that support overall health.',
+            'Tabernaemontana Divaricata (Crape Jasmine)': 'Crape Jasmine leaves are used to treat eye infections and skin disorders. They are also used in traditional medicine to reduce fever.',
+            'Trigonella Foenum-graecum (Fenugreek)': 'Fenugreek leaves are used to treat digestive issues, diabetes, and skin infections. They are also consumed to boost lactation in nursing mothers.'
+        };
+
+        let currentPrediction = '';
+        let currentImageSrc = '';
+
+        function uploadImage() {
+            let input = document.getElementById('imageInput');
+            let resultContainer = document.getElementById('resultContainer');
+            let suggestionContainer = document.getElementById('suggestionContainer');
+            let learnMoreButton = document.getElementById('learnMoreButton');
+
+            if (input.files.length === 0) {
+                alert("Please select an image.");
+                return;
+            }
+
+            // Show the result container
+            resultContainer.style.display = "flex";
+            resultContainer.style.flexDirection = "column";
+            resultContainer.style.alignItems = "center";
+
+            let file = input.files[0];
+            let formData = new FormData();
+            formData.append("file", file);
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview').src = e.target.result;
+                document.getElementById('preview').style.display = 'block';
+                currentImageSrc = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                currentPrediction = data.prediction;
+                document.getElementById('result').innerText = "Prediction: " + currentPrediction;
+
+                // Show suggestion container if confidence is low
+                if (data.prediction === "Upload image again") {
+                    suggestionContainer.style.display = "block";
+                    learnMoreButton.style.display = "none";
+                } else {
+                    suggestionContainer.style.display = "none";
+                    learnMoreButton.style.display = "inline-block";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById('result').innerText = "Error in prediction.";
+                suggestionContainer.style.display = "none";
+                learnMoreButton.style.display = "none";
+            });
+        }
+
+        function useExampleImage(imgElement) {
+            fetch(imgElement.src)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], 'example.jpg', { type: 'image/jpeg' });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    document.getElementById('imageInput').files = dataTransfer.files;
+
+                    // Trigger prediction
+                    uploadImage();
+                });
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function openPredictionModal() {
+            const modal = document.getElementById('leafDescriptionModal');
+            const title = document.getElementById('leafModalTitle');
+            const description = document.getElementById('leafModalDescription');
+            const image = document.getElementById('leafModalImage');
+
+            title.innerText = currentPrediction;
+            description.innerHTML = (leafDescriptions[currentPrediction] || 'No description available.') + '<br><b>For more details, ask Medibot.</b>';
+            image.src = currentImageSrc;
+            image.style.display = currentImageSrc ? 'block' : 'none';
+
+            modal.style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function openLeafModal(leafName) {
+            const modal = document.getElementById('leafDescriptionModal');
+            const title = document.getElementById('leafModalTitle');
+            const description = document.getElementById('leafModalDescription');
+            const image = document.getElementById('leafModalImage');
+
+            title.innerText = leafName;
+            description.innerHTML = (leafDescriptions[currentPrediction] || 'No description available.') + '<br><b>For more details, ask Medibot.</b>';
+            image.style.display = 'none'; // No image for dropdown selection
+
+            modal.style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('imageGuideModal').style.display = 'none';
+            document.getElementById('leafDescriptionModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+    </script>
+
+    <!-- Placeholder for chatbot widget -->
+    <div id="bp-web-widget"></div>
+
+    <!-- Botpress Web Chat Script -->
+    <script src="https://cdn.botpress.cloud/webchat/v2.2/inject.js"></script>
+
+    <!-- Custom Bot Configuration File -->
+    <script src="https://files.bpcontent.cloud/2025/02/21/09/20250221094715-4RK4BQ0R.js"></script>
+
+    <script>
+        window.botpressWebChat.init({
+            hostUrl: 'https://cdn.botpress.cloud/webchat/v2.2',
+            botId: 'ef5490c2-650f-46f9-9502-68a067d58b44',
+            clientId: '7dc361ae-cce2-4c3f-80af-2ff67aecc866'
+        });
+    </script>
+</body>
+</html>

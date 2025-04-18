@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaf Species Detection</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { margin-top: 50px; }
+        img { max-width: 300px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload an Image for Classification</h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="uploadImage()">Predict</button>
+        <p id="result"></p>
+        <img id="preview" style="display:none;">
+    </div>
+    
+    <script>
+        function uploadImage() {
+            let input = document.getElementById('imageInput');
+            if (input.files.length === 0) {
+                alert("Please select an image.");
+                return;
+            }
+            
+            let file = input.files[0];
+            let formData = new FormData();
+            formData.append("file", file);
+            
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview').src = e.target.result;
+                document.getElementById('preview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerText = "Prediction: " + data.prediction;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById('result').innerText = "Error in prediction.";
+            });
+        }
+    </script>
+</body>
+</html>
